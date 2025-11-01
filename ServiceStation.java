@@ -24,6 +24,17 @@ public class Semaphore {
         }
     }
 
+    public synchronized void P() {
+        value--;
+        if (value < 0) {
+            try {
+                wait();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
     public synchronized void V() {
         value++;
         if (value <= 0)
