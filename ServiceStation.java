@@ -15,6 +15,7 @@ public class Semaphore {
     public synchronized void P() {
         value--;
         if (value < 0) {
+         System.out.println(name + " arrived and waiting");
             try {
                 wait();
             } catch (InterruptedException e) {
