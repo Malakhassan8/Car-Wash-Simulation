@@ -12,7 +12,7 @@ public class Semaphore {
     protected Semaphore(int initial) {
         value = initial;
     }
-    public synchronized void P() {
+    public synchronized void P(String name) {
         value--;
         if (value < 0) {
          System.out.println(name + " arrived and waiting");
