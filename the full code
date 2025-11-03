@@ -1,0 +1,183 @@
+import java.util.LinkedList;
+import java.util.Queue;
+
+// ----- Semaphore Class -----
+class Semaphore {
+    protected int value = 0;
+
+    protected Semaphore() {
+        value = 0;
+    }
+
+    protected Semaphore(int initial) {
+        value = initial;
+    }
+
+    public synchronized void P(String name) {
+        value--;
+        if (value < 0) {
+            System.out.println(name + " arrived and waiting");
+            try {
+                wait();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    public synchronized void P() {
+        value--;
+        if (value < 0) {
+            try {
+                wait();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    public synchronized void V() {
+        value++;
+        if (value <= 0)
+            notify();
+    }
+}
+
+// ----- Car Class -----
+class Car extends Thread {
+    int CarID;
+    WaitingArea wa;
+
+    public Car(int id, WaitingArea wa) {
+        this.CarID = id;
+        this.wa = wa;
+    }
+
+    public void run() {
+        System.out.println("C" + CarID + " arrived");
+        wa.addCar(this);
+    }
+}
+
+// ----- WaitingArea Class -----
+class WaitingArea {
+    int bufferSize = 5;                 // Capacity of waiting area
+    Queue<Car> waitingCars = new LinkedList<>();
+
+    Semaphore spaces = new Semaphore(bufferSize);
+    Semaphore mutex = new Semaphore(1);
+    Semaphore cars = new Semaphore(0);
+
+    public void addCar(Car car) {
+        spaces.P("C" + car.CarID);       // Wait for space
+        mutex.P();                        // Enter critical section
+        waitingCars.add(car);             // Add car to queue
+        mutex.V();                        // Exit critical section
+        cars.V();                         // Signal car is waiting
+    }
+}
+
+// ----- Pump (Consumer) Class -----
+class Pump extends Thread {
+    WaitingArea wa;
+    Semaphore bays;
+    int pumpID;
+
+    public Pump(int id, WaitingArea wa, Semaphore bays) {
+        this.pumpID = id;
+        this.wa = wa;
+        this.bays = bays;
+    }
+
+    public void run() {
+        while (true) {
+            try {
+                Car car = null;
+                wa.mutex.P();          // Enter critical section
+                try {
+                    car = wa.waitingCars.poll(); // Remove car from queue
+                } finally {
+                    wa.mutex.V();       // Always unlock
+                }
+
+                if (car != null) {      // Only proceed if a car exists
+                    System.out.println("Pump " + pumpID + ": C" + car.CarID + " login");
+                    System.out.println("Pump " + pumpID + ": C" + car.CarID + " begins service at Bay " + pumpID);
+
+                    wa.spaces.V();      // Free a waiting space
+
+                    Thread.sleep(2000); // Simulate service time
+
+                    System.out.println("Pump " + pumpID + ": C" + car.CarID + " finishes service");
+                    System.out.println("Pump " + pumpID + ": Bay " + pumpID + " is now free");
+
+                    bays.V();           // Release the bay
+                }
+                // Release the bay
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;              // Exit loop on interruption
+            }
+        }
+    }
+}
+
+// ----- Main Simulation Class -----
+public class FullSimulation {
+
+    public static void main(String[] args) {
+        // Initialize waiting area
+        WaitingArea wa = new WaitingArea();
+        wa.bufferSize = 5;
+        wa.spaces = new Semaphore(wa.bufferSize);
+        wa.mutex = new Semaphore(1);
+        wa.cars = new Semaphore(0);
+
+        // Initialize service bays
+        Semaphore bays = new Semaphore(3); // 3 service bays
+
+        // Create and start Pump threads
+        Pump pump1 = new Pump(1, wa, bays);
+        Pump pump2 = new Pump(2, wa, bays);
+        Pump pump3 = new Pump(3, wa, bays);
+
+        pump1.start();
+        pump2.start();
+        pump3.start();
+
+        // Create car threads in order C1 - C5
+        Car[] cars = new Car[5];
+        for (int i = 0; i < 5; i++) {
+            cars[i] = new Car(i + 1, wa);
+        }
+
+        // Start car threads with small delay to simulate arrival order
+        try {
+            for (Car car : cars) {
+                car.start();
+                Thread.sleep(500);
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        // Wait for all cars to finish adding to the waiting area
+        try {
+            for (Car car : cars) {
+                car.join();
+            }
+
+            // Wait for pumps to finish processing cars
+            Thread.sleep(15000); // adjust based on service time
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        // Stop pumps gracefully
+        pump1.interrupt();
+        pump2.interrupt();
+        pump3.interrupt();
+
+        System.out.println("All cars processed; simulation ends");
+    }
+}
