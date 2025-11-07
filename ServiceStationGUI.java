@@ -112,7 +112,7 @@ class Pump extends Thread {
     WaitingArea wa; //the shared waiting queue
     Semaphore bays; //available service bays
     int pumpID;
-    JLabel pumpLabel; /GUI label used to show pump status
+    JLabel pumpLabel; //GUI label used to show pump status
     
     //Constructor
     public Pump(int id, WaitingArea wa, Semaphore bays, JLabel pumpLabel) {
