@@ -109,11 +109,12 @@ class Car extends Thread {
 
 // ----- Pump (Consumer) Class -----
 class Pump extends Thread {
-    WaitingArea wa;
-    Semaphore bays;
+    WaitingArea wa; //the shared waiting queue
+    Semaphore bays; //available service bays
     int pumpID;
-    JLabel pumpLabel;
-
+    JLabel pumpLabel; /GUI label used to show pump status
+    
+    //Constructor
     public Pump(int id, WaitingArea wa, Semaphore bays, JLabel pumpLabel) {
         this.pumpID = id;
         this.wa = wa;
@@ -122,13 +123,14 @@ class Pump extends Thread {
     }
 
     public void run() {
+        //loops until the thread is interrupted
         while (!Thread.currentThread().isInterrupted()) {
             try {
                 Car car = wa.getNextCar();
                 if (car != null) {
                     setPumpBusy("C" + car.CarID);
                     ServiceStationGUI.logMessage("Pump " + pumpID + ": C" + car.CarID + " begins service");
-                    wa.spaces.V();
+                    wa.spaces.V(); //signal that one waiting space freed up when the car moved to a pump.
 
                     Thread.sleep(2000); // simulate service time
 
