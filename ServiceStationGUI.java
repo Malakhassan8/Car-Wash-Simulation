@@ -109,10 +109,11 @@ class Car extends Thread {
 
 // ----- Pump (Consumer) Class -----
 class Pump extends Thread {
-    WaitingArea wa;     //the shared waiting queue
-    Semaphore bays;     //available service bays
+    WaitingArea wa; //the shared waiting queue
+    Semaphore bays; //available service bays
     int pumpID;
-    JLabel pumpLabel;   //GUI label used to show pump status
+    JLabel pumpLabel; //GUI label used to show pump status
+
 
     //Constructor
     public Pump(int id, WaitingArea wa, Semaphore bays, JLabel pumpLabel) {
@@ -123,14 +124,13 @@ class Pump extends Thread {
     }
 
     public void run() {
-        //loops until the thread is interrupted
         while (!Thread.currentThread().isInterrupted()) {
             try {
                 Car car = wa.getNextCar();
                 if (car != null) {
                     setPumpBusy("C" + car.CarID);
                     ServiceStationGUI.logMessage("Pump " + pumpID + ": C" + car.CarID + " begins service");
-                    wa.spaces.V();   //signal that one waiting space freed up when the car moved to a pump.
+                    wa.spaces.V();
 
                     Thread.sleep(2000); // simulate service time
 
@@ -138,7 +138,7 @@ class Pump extends Thread {
                     setPumpFree();
                     bays.V();
                 } else {
-                    Thread.sleep(300);
+                    Thread.sleep(900);
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -224,13 +224,12 @@ public class ServiceStationGUI extends JFrame {
                 for (int i = 0; i < numCars; i++) {
                     Car car = new Car(i + 1, wa);
                     car.start();
-                    Thread.sleep(2000);
+                    Thread.sleep(900);
                 }
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }).start();
-
     }
 
     // --- GUI Update Methods ---
